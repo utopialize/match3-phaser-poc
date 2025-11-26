@@ -59,4 +59,4 @@ coverage/
 .history/
 *.bak
 *.orig
-docs
+docs/
