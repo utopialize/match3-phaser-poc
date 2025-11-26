@@ -8,6 +8,14 @@ A fully featured, production-ready match-3 engine built with Phaser 3 and TypeSc
 
 ---
 
+## 🎮 Try It Now
+
+[![Play Demo](https://img.shields.io/badge/▶️_Play_Demo-Live_on_Netlify-00C7B7?style=for-the-badge)](https://match3-phaser-poc.netlify.app/)
+
+No installation required - just click and play! 🚀
+
+---
+
 ## ✨ Features
 
 - Match-3 core: swaps, validation, cascades, hints.
@@ -121,4 +129,4 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ## 📜 License
 
-MIT © 2025 Your Name
+MIT © 2025 Utopialize

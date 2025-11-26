@@ -8,6 +8,14 @@ Moteur match-3 complet et prêt pour la production avec Phaser 3 et TypeScript. 
 
 ---
 
+## 🎮 Essayez-le Maintenant
+
+[![Jouer à la Démo](https://img.shields.io/badge/▶️_Jouer_à_la_Démo-En_ligne_sur_Netlify-00C7B7?style=for-the-badge)](https://match3-phaser-poc.netlify.app/)
+
+Aucune installation requise - cliquez et jouez ! 🚀
+
+---
+
 ## ✨ Fonctionnalités
 
 - Coeur match-3 : échanges, validation, cascades, indices.
@@ -121,4 +129,4 @@ Les contributions sont bienvenues ! Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour
 
 ## 📜 Licence
 
-MIT © 2025 Your Name
+MIT © 2025 Utopialize
