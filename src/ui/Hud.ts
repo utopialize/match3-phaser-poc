@@ -1,3 +1,7 @@
+﻿/**
+ * @fileoverview UI helper wiring HTML HUD elements to Phaser scene and dev controls.
+ * @module src/ui/Hud
+ */
 import Phaser from 'phaser';
 import { SpecialType } from '../types';
 
@@ -13,11 +17,23 @@ type HudElements = {
   devSpecial?: HTMLSelectElement | null;
 };
 
+/**
+ * Bridges DOM HUD controls with Phaser scene state, including dev mutation helpers.
+ *
+ * @example
+ * const hud = new Hud(scene);
+ * hud.updateHud(0, 0, 120);
+ */
 export class Hud {
   private elements: HudElements;
   private scene: Phaser.Scene;
   private devMode = false;
 
+  /**
+   * Create the HUD helper and snapshot the DOM elements.
+   *
+   * @param scene - Scene used to hook keyboard shortcuts.
+   */
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.elements = {
@@ -33,14 +49,29 @@ export class Hud {
     };
   }
 
+  /**
+   * Register a callback for the new game button.
+   *
+   * @param cb - Handler invoked on new game click.
+   */
   onNewGame(cb: () => void): void {
     this.elements.newGameBtn?.addEventListener('click', cb);
   }
 
+  /**
+   * Register a callback for the dev reset control.
+   *
+   * @param cb - Handler invoked on dev reset click.
+   */
   onDevReset(cb: () => void): void {
     this.elements.devReset?.addEventListener('click', cb);
   }
 
+  /**
+   * Toggle dev panel visibility via button or keyboard, optionally notifying listener.
+   *
+   * @param cb - Optional listener notified when dev mode toggles.
+   */
   onToggleDev(cb?: (enabled: boolean) => void): void {
     const toggle = () => {
       this.devMode = !this.devMode;
@@ -51,10 +82,22 @@ export class Hud {
     this.scene.input.keyboard?.on('keydown-D', toggle);
   }
 
+  /**
+   * Check whether dev mode is currently enabled.
+   *
+   * @returns True when dev controls are active.
+   */
   isDevMode(): boolean {
     return this.devMode;
   }
 
+  /**
+   * Read the dev panel selections to mutate a tile.
+   *
+   * @param currentType - Current type of the tile being mutated.
+   * @param currentSpecial - Current special of the tile being mutated.
+   * @returns Selected type and special to apply.
+   */
   getDevSelection(currentType: number, currentSpecial: SpecialType | null): {
     type: number;
     special: SpecialType | null;
@@ -69,6 +112,13 @@ export class Hud {
     return { type, special };
   }
 
+  /**
+   * Update HUD labels with the latest score, best score, and timer.
+   *
+   * @param score - Current run score.
+   * @param best - Persisted best score.
+   * @param timer - Remaining time in seconds.
+   */
   updateHud(score: number, best: number, timer: number): void {
     if (this.elements.scoreEl) this.elements.scoreEl.textContent = `Flux: ${score}`;
     if (this.elements.bestEl) this.elements.bestEl.textContent = `Record: ${best}`;

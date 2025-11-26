@@ -1,7 +1,18 @@
-﻿import Phaser from 'phaser';
+﻿/**
+ * @fileoverview Texture generation for gems, specials, and supporting VFX textures.
+ * @module src/render/TextureFactory
+ */
+import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config/GameConfig';
 import { GemSpec, SpecialType } from '../types';
 
+/**
+ * Compute the texture key for a tile based on type and optional special.
+ *
+ * @param type - Gem type index.
+ * @param special - Optional special variant.
+ * @returns Texture key string used by Phaser.
+ */
 export const textureKey = (type: number, special?: SpecialType | null): string => {
   if (special === 'line-h') return `tile-${type}-line-h`;
   if (special === 'line-v') return `tile-${type}-line-v`;
@@ -10,6 +21,13 @@ export const textureKey = (type: number, special?: SpecialType | null): string =
   return `tile-${type}`;
 };
 
+/**
+ * Register all tile textures (base, specials, glow, and particles) on the provided scene.
+ *
+ * @param scene - Phaser scene used to generate textures.
+ * @param specs - Visual specs for each gem type.
+ * @param tileSize - Tile size to render textures at.
+ */
 export const registerTextures = (
   scene: Phaser.Scene,
   specs: GemSpec[],

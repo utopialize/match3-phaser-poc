@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Main Phaser scene orchestrating gameplay loop, grid interactions, rendering, and HUD.
+ * @module src/scenes/GameScene
+ */
 import Phaser from 'phaser';
 import { registerTextures, textureKey } from '../render/TextureFactory';
 import { SpecialType, Tile } from '../types';
@@ -7,6 +11,12 @@ import { GAME_CONFIG } from '../config/GameConfig';
 import { Hud } from '../ui/Hud';
 import { TileRenderer } from '../render/TileRenderer';
 
+/**
+ * Primary game scene handling input, swapping, match resolution, rendering, and timers.
+ *
+ * @example
+ * const game = new Phaser.Game({ scene: [GameScene], ... });
+ */
 export class GameScene extends Phaser.Scene {
   private selected: Tile | null = null;
   private isProcessing = false;
@@ -31,18 +41,32 @@ export class GameScene extends Phaser.Scene {
   private tileRenderer!: TileRenderer;
   private gemSpecs = GAME_CONFIG.gems.specs;
 
+  /**
+   * Instantiate the scene with its key.
+   */
   constructor() {
     super('GameScene');
   }
 
+  /**
+   * Bootstrap persisted data before the scene starts.
+   *
+   * @param data - Optional data containing best score.
+   */
   init(data?: { bestScore?: number }): void {
     this.bestScore = data?.bestScore ?? this.loadBestScore();
   }
 
+  /**
+   * Preload dynamically generated textures prior to scene creation.
+   */
   preload(): void {
     registerTextures(this, this.gemSpecs, GAME_CONFIG.grid.tileSize);
   }
 
+  /**
+   * Create the scene: grid, HUD, timers, and hint/check loops.
+   */
   create(): void {
     this.boardOffset.x = (this.scale.width - GAME_CONFIG.grid.cols * GAME_CONFIG.grid.tileSize) / 2;
     this.boardOffset.y =
@@ -314,6 +338,7 @@ export class GameScene extends Phaser.Scene {
     let cascade = chain;
     let currentGroups = groups;
     while (currentGroups.length > 0) {
+      // Treat each iteration as a cascade layer: resolve current matches, apply gravity, then search for new ones.
       const allTiles = new Set<Tile>();
       currentGroups.forEach((g) => g.tiles.forEach((t) => allTiles.add(t)));
       const { batches: steps, specials: specialAssignments } = this.matchResolver.resolve(

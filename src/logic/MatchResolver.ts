@@ -1,4 +1,8 @@
-﻿import { GAME_CONFIG, RuleConfig } from '../config/GameConfig';
+﻿/**
+ * @fileoverview Resolves match groups into destruction and special creation waves.
+ * @module src/logic/MatchResolver
+ */
+import { GAME_CONFIG, RuleConfig } from '../config/GameConfig';
 import { SpecialType, Tile } from '../types';
 import { GridLookup } from './types';
 
@@ -10,13 +14,34 @@ export type ResolveResult = {
   suppressed: Set<Tile>;
 };
 
+/**
+ * Computes special tile assignments and orders their resolution into cascading waves.
+ *
+ * @example
+ * const resolver = new MatchResolver();
+ * const result = resolver.resolve(groups, matchedTiles, grid);
+ */
 export class MatchResolver {
   private rules: RuleConfig;
 
+  /**
+   * Build a resolver with the provided rule set.
+   *
+   * @param rules - Rule configuration controlling match thresholds and radii.
+   */
   constructor(rules: RuleConfig = GAME_CONFIG.rules) {
     this.rules = rules;
   }
 
+  /**
+   * Resolve raw match groups into batches of destruction and special promotions.
+   *
+   * @param groups - Matched tile groups with orientation metadata.
+   * @param initialTiles - Set of tiles participating in the first wave.
+   * @param grid - Grid lookup helpers.
+   * @param lastSwap - Optional pair of tiles that were just swapped to bias special origin.
+   * @returns Ordered waves of tiles plus special assignments and suppressed specials.
+   */
   resolve(groups: MatchGroup[], initialTiles: Set<Tile>, grid: GridLookup, lastSwap?: Tile[]): ResolveResult {
     const specials = this.computeSpecialAssignments(groups, initialTiles, lastSwap);
     const suppressed = this.buildSuppressedSpecials(initialTiles, specials);
@@ -24,6 +49,14 @@ export class MatchResolver {
     return { batches, specials, suppressed };
   }
 
+  /**
+   * Decide which tiles become specials based on shape (lines, L/T, or nova streaks).
+   *
+   * @param groups - Raw match groups with orientation.
+   * @param allTiles - All tiles involved in the initial match wave.
+   * @param lastSwap - Optional last swap to prioritize origins.
+   * @returns Mapping of tiles to their assigned special types.
+   */
   private computeSpecialAssignments(groups: MatchGroup[], allTiles: Set<Tile>, lastSwap?: Tile[]): Map<Tile, SpecialType> {
     const specials = new Map<Tile, SpecialType>();
     const rowGroups = groups.filter((g) => g.orientation === 'row' && g.type !== undefined);
@@ -42,7 +75,7 @@ export class MatchResolver {
       }
     });
 
-    // L / T / croix : intersection row + col meme couleur total >= novaMatchLength -> nova
+    // L / T / cross patterns: intersection of row+col of same type large enough yields nova.
     rowGroups.forEach((r) => {
       colGroups
         .filter((c) => c.type === r.type && c.tiles.some((t) => r.tiles.includes(t)))
@@ -55,7 +88,7 @@ export class MatchResolver {
         });
     });
 
-    // Supernova : plusieurs novas combinees
+    // Supernova: multiple novas combined in the same wave.
     const novaTiles = [...allTiles].filter((t) => t.special === 'nova');
     if (novaTiles.length >= this.rules.supernovaNovaCount) {
       const origin = this.pickSpecialOrigin(novaTiles, lastSwap);
@@ -72,11 +105,21 @@ export class MatchResolver {
     return groupTiles[0] ?? null;
   }
 
+  /**
+   * Build wave-ordered sets of tiles affected by specials firing off each other.
+   *
+   * @param base - Tiles in the initial match wave.
+   * @param assignments - Special upgrades to apply on first wave.
+   * @param suppressed - Specials that should not trigger due to supernova dominance.
+   * @param grid - Grid helper for neighbor lookups.
+   * @returns Ordered batches of tiles to process sequentially.
+   */
   private buildSpecialStages(base: Set<Tile>, assignments: Map<Tile, SpecialType>, suppressed: Set<Tile>, grid: GridLookup): Set<Tile>[] {
     const steps: Set<Tile>[] = [];
     const seen = new Set<Tile>(base);
     steps.push(new Set<Tile>(base));
 
+    // BFS-like expansion: gather new tiles hit by each special wave until no new ones appear.
     let queue: Tile[] = [...base].filter((t) => t.special && !suppressed.has(t));
 
     while (queue.length > 0) {
@@ -105,6 +148,13 @@ export class MatchResolver {
     return steps;
   }
 
+  /**
+   * Collect all tiles targeted by a special tile firing (normals vs specials separated).
+   *
+   * @param tile - Special tile that is firing.
+   * @param grid - Grid lookup used to fetch neighbors and lines.
+   * @returns Normal and special targets hit by the special.
+   */
   collectSpecialTargets(tile: Tile, grid: GridLookup): { normals: Tile[]; specials: Tile[] } {
     const normals: Tile[] = [];
     const specials: Tile[] = [];
@@ -119,7 +169,7 @@ export class MatchResolver {
     };
 
     if (tile.special === 'supernova') {
-      // supernova: chain every other special; color purge gere dans la scene
+      // Supernova chains every other special on the board; color purge handled by the scene.
       for (let r = 0; r < size; r += 1) {
         for (let c = 0; c < size; c += 1) {
           const target = grid.getTile(r, c);

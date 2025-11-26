@@ -1,5 +1,17 @@
+﻿/**
+ * @fileoverview Grid state container handling tile placement, swapping, matching checks, and gravity.
+ * @module src/core/GridManager
+ */
 import { Tile } from '../types';
 
+/**
+ * Manages the logical grid, ensuring swaps, matches, and gravity resolve correctly.
+ *
+ * @example
+ * const grid = new GridManager(8, 5, 3, 3);
+ * grid.init(tileFactory);
+ * const hasMatch = grid.matchExistsAt(3, 4);
+ */
 export class GridManager {
   private size: number;
   private tileTypes: number;
@@ -7,6 +19,14 @@ export class GridManager {
   private supernovaNovaCount: number;
   grid: (Tile | null)[][];
 
+  /**
+   * Create a new grid manager for a square board.
+   *
+   * @param size - Number of rows and columns.
+   * @param tileTypes - Available gem types.
+   * @param minMatch - Minimum tiles needed for a valid match.
+   * @param supernovaNovaCount - Number of novas needed to trigger a supernova chain.
+   */
   constructor(size: number, tileTypes: number, minMatch: number, supernovaNovaCount: number) {
     this.size = size;
     this.tileTypes = tileTypes;
@@ -15,18 +35,40 @@ export class GridManager {
     this.grid = [];
   }
 
+  /**
+   * Get the tile at a given coordinate.
+   *
+   * @param row - Row index.
+   * @param col - Column index.
+   * @returns Tile at the coordinate or null.
+   */
   getTile(row: number, col: number): Tile | null {
     return this.grid[row]?.[col] ?? null;
   }
 
+  /**
+   * Get the current grid matrix.
+   *
+   * @returns 2D grid of tiles or nulls.
+   */
   getGrid(): (Tile | null)[][] {
     return this.grid;
   }
 
+  /**
+   * Get the grid size.
+   *
+   * @returns Number of rows/columns in the square grid.
+   */
   getSize(): number {
     return this.size;
   }
 
+  /**
+   * Initialize the grid with tiles produced by the provided factory, avoiding pre-existing matches.
+   *
+   * @param factory - Function that creates a tile at the requested coordinates and type.
+   */
   init(factory: (row: number, col: number, type: number) => Tile): void {
     this.grid = [];
     for (let row = 0; row < this.size; row += 1) {
@@ -39,6 +81,12 @@ export class GridManager {
     }
   }
 
+  /**
+   * Swap two tiles in the grid, updating their coordinates.
+   *
+   * @param tileA - First tile to swap.
+   * @param tileB - Second tile to swap.
+   */
   swap(tileA: Tile, tileB: Tile): void {
     const { row: rowA, col: colA } = tileA;
     const { row: rowB, col: colB } = tileB;
@@ -50,10 +98,22 @@ export class GridManager {
     this.grid[rowB][colB] = tileA;
   }
 
+  /**
+   * Check if a match exists at a given coordinate.
+   *
+   * @param row - Row to inspect.
+   * @param col - Column to inspect.
+   * @returns True if a match of length >= minMatch exists.
+   */
   matchExistsAt(row: number, col: number): boolean {
     return this.localMatchExistsAt(row, col);
   }
 
+  /**
+   * Determine if any swap on the board would create a match.
+   *
+   * @returns True if at least one potential swap yields a match.
+   */
   hasPossibleMoves(): boolean {
     for (let row = 0; row < this.size; row += 1) {
       for (let col = 0; col < this.size; col += 1) {
@@ -64,6 +124,15 @@ export class GridManager {
     return false;
   }
 
+  /**
+   * Simulate a swap and check if it would create a match.
+   *
+   * @param r1 - Row of first tile.
+   * @param c1 - Column of first tile.
+   * @param r2 - Row of second tile.
+   * @param c2 - Column of second tile.
+   * @returns True if swapping would create a match.
+   */
   checkSwapForMatch(r1: number, c1: number, r2: number, c2: number): boolean {
     if (!this.inBounds(r2, c2)) return false;
     const a = this.grid[r1][c1];
@@ -77,9 +146,14 @@ export class GridManager {
     return match;
   }
 
+  /**
+   * Find any horizontal or vertical streak of novas large enough to create a supernova.
+   *
+   * @returns Set of nova tiles that form a qualifying streak.
+   */
   findNovaMatch(): Set<Tile> {
     const result = new Set<Tile>();
-    // rows
+    // Scan rows for nova streaks large enough to matter.
     for (let row = 0; row < this.size; row += 1) {
       let streak: Tile[] = [];
       for (let col = 0; col < this.size; col += 1) {
@@ -93,7 +167,7 @@ export class GridManager {
       }
       if (streak.length >= this.supernovaNovaCount) streak.forEach((t) => result.add(t));
     }
-    // cols
+    // Scan columns for nova streaks large enough to matter.
     for (let col = 0; col < this.size; col += 1) {
       let streak: Tile[] = [];
       for (let row = 0; row < this.size; row += 1) {
@@ -110,9 +184,14 @@ export class GridManager {
     return result;
   }
 
+  /**
+   * Group all matches of length >= minMatch into horizontal or vertical runs.
+   *
+   * @returns Array of match groups including orientation and type.
+   */
   findMatchGroups(): { tiles: Tile[]; orientation: 'row' | 'col'; type: number }[] {
     const groups: { tiles: Tile[]; orientation: 'row' | 'col'; type: number }[] = [];
-    // Rows
+    // Horizontal scan; breaks streaks on specials to avoid multi-type chains.
     for (let row = 0; row < this.size; row += 1) {
       let streak: Tile[] = [];
       for (let col = 0; col < this.size; col += 1) {
@@ -131,7 +210,7 @@ export class GridManager {
       }
       if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
     }
-    // Columns
+    // Vertical scan mirrors the row scan; both avoid counting specials.
     for (let col = 0; col < this.size; col += 1) {
       let streak: Tile[] = [];
       for (let row = 0; row < this.size; row += 1) {
@@ -153,6 +232,12 @@ export class GridManager {
     return groups;
   }
 
+  /**
+   * Apply gravity, moving tiles downward and spawning new ones in empty spaces.
+   *
+   * @param spawn - Factory used to create tiles for empty slots at the top.
+   * @returns Moved and spawned tiles for animation.
+   */
   applyGravity(spawn: (row: number, col: number, type: number) => Tile): { moved: Tile[]; spawned: Tile[] } {
     const moved: Tile[] = [];
     const spawned: Tile[] = [];
@@ -160,6 +245,7 @@ export class GridManager {
     for (let col = 0; col < this.size; col += 1) {
       let empty = 0;
       for (let row = this.size - 1; row >= 0; row -= 1) {
+        // Walk upward; each null increments a gap counter we later fill.
         const tile = this.grid[row][col];
         if (!tile) {
           empty += 1;
@@ -185,6 +271,9 @@ export class GridManager {
     return { moved, spawned };
   }
 
+  /**
+   * Destroy all tile sprites and reset the grid matrix.
+   */
   clear(): void {
     this.grid.flat().forEach((tile) => tile?.sprite.destroy());
     this.grid = [];

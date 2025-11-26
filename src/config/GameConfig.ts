@@ -1,12 +1,38 @@
+/**
+ * @fileoverview Centralized game configuration describing viewport, grid, visuals, timings, rules, and UI keys.
+ * @module src/config/GameConfig
+ */
+
 import Phaser from 'phaser';
 import { GemSpec } from '../types';
 
+/**
+ * Configuration for the Phaser viewport canvas.
+ *
+ * @property width - Canvas width in pixels.
+ * @property height - Canvas height in pixels.
+ * @property backgroundColor - Hex string used for the game background.
+ */
 export interface ViewportConfig {
   width: number;
   height: number;
   backgroundColor: string;
 }
 
+/**
+ * Configuration for grid dimensions and tile settings.
+ *
+ * @property rows - Number of rows in the grid.
+ * @property cols - Number of columns in the grid.
+ * @property tileTypes - Number of gem variants available.
+ * @property tileSize - Size of each tile in pixels.
+ * @property boardOffsetY - Additional vertical offset to center the board visually.
+ * @property spawnOffset - Extra vertical offset applied to spawning tiles to create a drop effect.
+ * @property dropSpawnRange - Min/max random offset applied when tiles spawn above their target.
+ * @property columnDelayMs - Delay per column used to stagger fall tweens during gravity.
+ * @property spawnColumnDelayMs - Delay per column for initial spawn entrance.
+ * @property spawnDelayMs - Delay between tiles spawned in the same column.
+ */
 export interface GridConfig {
   rows: number;
   cols: number;
@@ -20,6 +46,21 @@ export interface GridConfig {
   spawnDelayMs: number;
 }
 
+/**
+ * Visual configuration for gem shapes, outlines, runes, and special overlays.
+ *
+ * @property lineOverlay - Base colors for line specials.
+ * @property novaOverlay - Base colors for nova specials.
+ * @property superNovaOverlay - Base colors for supernova specials.
+ * @property rune - Stroke style used to draw rune lines.
+ * @property runeShapes - Geometric definitions for each rune, matching `specs` order.
+ * @property spark - Size and color of particle sparks.
+ * @property glow - Halo rendering underneath tiles.
+ * @property tileShape - Insets and radii for gem body and stroke.
+ * @property lineOverlayStyle - Stroke style and glyph offsets for line specials.
+ * @property novaStyle - Stroke colors and spike geometry for novas.
+ * @property superNovaStyle - Stroke colors and ray geometry for supernovas.
+ */
 export interface GemVisualConfig {
   lineOverlay: { primary: number; secondary: number };
   novaOverlay: { primary: number; secondary: number };
@@ -34,20 +75,51 @@ export interface GemVisualConfig {
   superNovaStyle: { outerColor: number; outerWidth: number; outerAlpha: number; innerColor: number; innerWidth: number; innerAlpha: number; sigil: { color: number; width: number; alpha: number }; rays: { count: number; innerRadius: number; outerRadius: number } };
 }
 
+/**
+ * Parametric description of rune strokes used when drawing gem sigils.
+ *
+ * @property kind - Shape type; either a set of points or a star pattern.
+ * @property points - Sequence of relative coordinates to draw for point-based runes.
+ * @property close - Whether to close the path for point-based runes.
+ * @property spikes - Number of spikes for star runes.
+ * @property outerRadius - Outer radius for star spikes.
+ * @property innerRadius - Inner radius for star spikes.
+ */
 export type RuneShape =
   | { kind: 'points'; points: { x: number; y: number }[]; close: boolean }
   | { kind: 'star'; spikes: number; outerRadius: number; innerRadius: number };
 
+/**
+ * Configuration for available gem types and their associated visuals.
+ *
+ * @property specs - Palette and naming for each gem type.
+ * @property visuals - Shared drawing settings for all gem variants.
+ */
 export interface GemConfig {
   specs: GemSpec[];
   visuals: GemVisualConfig;
 }
 
+/**
+ * Timing and easing for swap animations.
+ *
+ * @property durationMs - Swap tween duration in milliseconds.
+ * @property ease - Easing identifier for swaps.
+ */
 export interface SwapAnimationConfig {
   durationMs: number;
   ease: string;
 }
 
+/**
+ * Timing and easing for drop animations.
+ *
+ * @property durationMs - Base duration for drops.
+ * @property jitterMs - Random extra time added to new tile drops.
+ * @property ease - Easing for gravity moves.
+ * @property spawnEase - Easing for newly spawned tiles.
+ * @property spawnGlow - Glow pulse applied when a tile lands.
+ */
 export interface DropAnimationConfig {
   durationMs: number;
   jitterMs: number;
@@ -56,12 +128,29 @@ export interface DropAnimationConfig {
   spawnGlow: { alpha: number; durationMs: number; ease: string };
 }
 
+/**
+ * Scaling animation used for hover/select/deselect states.
+ *
+ * @property scale - Target scale value.
+ * @property durationMs - Duration in milliseconds.
+ * @property ease - Easing identifier.
+ */
 export interface HoverAnimationConfig {
   scale: number;
   durationMs: number;
   ease: string;
 }
 
+/**
+ * Configuration for hint pulse behavior after inactivity.
+ *
+ * @property idleDelayMs - Delay before showing a hint.
+ * @property pulseScale - Scale used for pulsing tiles.
+ * @property durationMs - Duration of each pulse tween.
+ * @property repeat - Number of pulse repeats.
+ * @property ease - Easing identifier.
+ * @property checkIntervalMs - Interval used to poll for idle hints.
+ */
 export interface HintAnimationConfig {
   idleDelayMs: number;
   pulseScale: number;
@@ -71,6 +160,15 @@ export interface HintAnimationConfig {
   checkIntervalMs: number;
 }
 
+/**
+ * Configuration for reshuffle wobble and attempts.
+ *
+ * @property wobbleAngle - Angle amplitude for the wobble effect.
+ * @property durationMs - Duration of the wobble tween.
+ * @property repeat - Number of wobble repeats.
+ * @property ease - Easing identifier.
+ * @property maxAttempts - Maximum reshuffle attempts to obtain a playable grid.
+ */
 export interface ReshuffleConfig {
   wobbleAngle: number;
   durationMs: number;
@@ -79,6 +177,25 @@ export interface ReshuffleConfig {
   maxAttempts: number;
 }
 
+/**
+ * Collection of animation settings for all gameplay events.
+ *
+ * @property swap - Swap tween settings.
+ * @property drop - Drop and spawn settings.
+ * @property hover - Hover scaling settings.
+ * @property select - Selection scaling settings.
+ * @property deselect - Deselect scaling settings.
+ * @property bump - Feedback when an invalid swap occurs.
+ * @property destroy - Tile destruction tween settings.
+ * @property upgrade - Promotion tween settings for specials.
+ * @property hint - Idle hint pulse settings.
+ * @property cascadeDelayMs - Delay between cascade waves.
+ * @property matchWaveDelayMs - Delay base for staggering gravity moves.
+ * @property reshuffle - Wobble and iteration settings after reshuffle.
+ * @property hoverOutScale - Scale to apply when leaving hover.
+ * @property timeUpZoom - Camera zoom pulse when time expires.
+ * @property startupEnsurePlayableDelayMs - Delay before first playable check at startup.
+ */
 export interface AnimationConfig {
   swap: SwapAnimationConfig;
   drop: DropAnimationConfig;
@@ -97,6 +214,20 @@ export interface AnimationConfig {
   startupEnsurePlayableDelayMs: number;
 }
 
+/**
+ * Scoring, timing, and special creation rules.
+ *
+ * @property minMatch - Minimum contiguous tiles needed for a match.
+ * @property lineMatchLength - Required length for line specials.
+ * @property novaMatchLength - Required length for nova specials.
+ * @property supernovaNovaCount - Number of novas needed to produce a supernova.
+ * @property novaBlastRadius - Radius around a nova to include when it triggers.
+ * @property pointsPerTile - Base points for each destroyed tile.
+ * @property bonusPerTileForLine - Bonus per tile for line-sized matches.
+ * @property cascadeBonusPerChain - Bonus scaled by cascade depth.
+ * @property timerSeconds - Game duration in seconds.
+ * @property timerTickMs - Timer tick resolution.
+ */
 export interface RuleConfig {
   minMatch: number;
   lineMatchLength: number;
@@ -110,6 +241,13 @@ export interface RuleConfig {
   timerTickMs: number;
 }
 
+/**
+ * Visual effect settings for shakes, flashes, and particles.
+ *
+ * @property cameraShake - Duration and intensity of camera shake on matches.
+ * @property flash - Flash overlay displayed on tile destruction.
+ * @property particles - Particle emitter settings for destruction sparks.
+ */
 export interface EffectConfig {
   cameraShake: { durationMs: number; intensity: number };
   flash: { color: number; alpha: number; durationMs: number; scale: number; ease: string };
@@ -123,10 +261,32 @@ export interface EffectConfig {
   };
 }
 
+/**
+ * UI-related configuration such as storage keys.
+ *
+ * @property bestScoreKey - Local storage key for best score.
+ */
 export interface UiConfig {
   bestScoreKey: string;
 }
 
+/**
+ * Aggregate configuration grouping all game subsystems.
+ *
+ * @property viewport - Canvas and background settings.
+ * @property grid - Grid dimensions and spawn timings.
+ * @property gems - Visual definitions for gem families.
+ * @property animations - Timings and easings for gameplay actions.
+ * @property rules - Scoring and matching rules.
+ * @property effects - Screen and particle effects.
+ * @property ui - UI-related keys and metadata.
+ *
+ * @example
+ * const customConfig: GameConfiguration = {
+ *   ...GAME_CONFIG,
+ *   grid: { ...GAME_CONFIG.grid, tileSize: 72 }
+ * };
+ */
 export interface GameConfiguration {
   viewport: ViewportConfig;
   grid: GridConfig;
@@ -137,6 +297,9 @@ export interface GameConfiguration {
   ui: UiConfig;
 }
 
+/**
+ * Default game configuration used by all systems; tweak values here to reskin or rebalance the match-3.
+ */
 export const GAME_CONFIG: GameConfiguration = {
   viewport: {
     width: 800, // Largeur de la fenêtre de jeu
