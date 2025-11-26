@@ -30,8 +30,8 @@ Aucune installation requise - cliquez et jouez ! 🚀
 ## 🚀 Démarrage rapide
 
 ```bash
-git clone https://github.com/your-username/phaser-match3-engine.git
-cd phaser-match3-engine
+git clone https://github.com/utopialize/match3-phaser-poc.git [YOU FOLDER]
+cd [YOU FOLDER]
 npm install
 npm run dev
 ```
