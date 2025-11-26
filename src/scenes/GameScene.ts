@@ -3,7 +3,7 @@ import { registerTextures, textureKey } from '../render/TextureFactory';
 import { SpecialType, Tile } from '../types';
 import { GridManager } from '../core/GridManager';
 import { MatchResolver } from '../logic/MatchResolver';
-import { GRID_SIZE, TILE_TYPES, TILE_SIZE, TURN_DURATION, DROP_DURATION, IDLE_HINT_MS, GAME_TIME, GEM_SPECS } from '../config/GameConfig';
+import { GAME_CONFIG } from '../config/GameConfig';
 import { Hud } from '../ui/Hud';
 import { TileRenderer } from '../render/TileRenderer';
 
@@ -12,7 +12,7 @@ export class GameScene extends Phaser.Scene {
   private isProcessing = false;
   private score = 0;
   private bestScore = 0;
-  private timer = GAME_TIME;
+  private timer = GAME_CONFIG.rules.timerSeconds;
   private timerEvent?: Phaser.Time.TimerEvent;
   private lastActionTime = 0;
   private hintTween?: Phaser.Tweens.Tween;
@@ -20,11 +20,16 @@ export class GameScene extends Phaser.Scene {
   private boardOffset = { x: 0, y: 0 };
   private lastSwap: Tile[] | null = null;
   private specialTriggerType: Map<Tile, number> = new Map();
-  private matchResolver = new MatchResolver();
-  private gridManager = new GridManager(GRID_SIZE, TILE_TYPES);
+  private matchResolver = new MatchResolver(GAME_CONFIG.rules);
+  private gridManager = new GridManager(
+    GAME_CONFIG.grid.rows,
+    GAME_CONFIG.grid.tileTypes,
+    GAME_CONFIG.rules.minMatch,
+    GAME_CONFIG.rules.supernovaNovaCount
+  );
   private hud!: Hud;
   private tileRenderer!: TileRenderer;
-  private gemSpecs = GEM_SPECS;
+  private gemSpecs = GAME_CONFIG.gems.specs;
 
   constructor() {
     super('GameScene');
@@ -35,21 +40,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload(): void {
-    registerTextures(this, this.gemSpecs, TILE_SIZE);
+    registerTextures(this, this.gemSpecs, GAME_CONFIG.grid.tileSize);
   }
 
   create(): void {
-    this.boardOffset.x = (this.scale.width - GRID_SIZE * TILE_SIZE) / 2;
-    this.boardOffset.y = (this.scale.height - GRID_SIZE * TILE_SIZE) / 2 + 12;
+    this.boardOffset.x = (this.scale.width - GAME_CONFIG.grid.cols * GAME_CONFIG.grid.tileSize) / 2;
+    this.boardOffset.y =
+      (this.scale.height - GAME_CONFIG.grid.rows * GAME_CONFIG.grid.tileSize) / 2 + GAME_CONFIG.grid.boardOffsetY;
     this.hud = new Hud(this);
     this.tileRenderer = new TileRenderer(this, this.gemSpecs);
     this.initGrid();
     this.bindUI();
     this.startTimer();
     this.lastActionTime = this.time.now;
-    this.time.addEvent({ delay: 650, callback: this.ensurePlayable, callbackScope: this });
     this.time.addEvent({
-      delay: 800,
+      delay: GAME_CONFIG.animations.startupEnsurePlayableDelayMs,
+      callback: this.ensurePlayable,
+      callbackScope: this
+    });
+    this.time.addEvent({
+      delay: GAME_CONFIG.animations.hint.checkIntervalMs,
       loop: true,
       callback: this.maybeShowHint,
       callbackScope: this
@@ -68,9 +78,14 @@ export class GameScene extends Phaser.Scene {
     this.stopHint();
     this.isProcessing = false;
     this.score = 0;
-    this.timer = GAME_TIME;
+    this.timer = GAME_CONFIG.rules.timerSeconds;
     this.specialTriggerType.clear();
-    this.gridManager = new GridManager(GRID_SIZE, TILE_TYPES);
+    this.gridManager = new GridManager(
+      GAME_CONFIG.grid.rows,
+      GAME_CONFIG.grid.tileTypes,
+      GAME_CONFIG.rules.minMatch,
+      GAME_CONFIG.rules.supernovaNovaCount
+    );
   }
 
   private bindUI(): void {
@@ -79,7 +94,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.hud.onDevReset(() => {
-      this.timer = GAME_TIME;
+      this.timer = GAME_CONFIG.rules.timerSeconds;
       this.isProcessing = false;
       this.startTimer();
       this.lastActionTime = this.time.now;
@@ -92,7 +107,7 @@ export class GameScene extends Phaser.Scene {
   private startTimer(): void {
     this.timerEvent?.remove(false);
     this.timerEvent = this.time.addEvent({
-      delay: 1000,
+      delay: GAME_CONFIG.rules.timerTickMs,
       loop: true,
       callback: () => {
         if (this.isProcessing) {
@@ -113,10 +128,10 @@ export class GameScene extends Phaser.Scene {
     this.isProcessing = true;
     this.tweens.add({
       targets: this.cameras.main,
-      zoom: { from: 1, to: 1.02 },
-      duration: 200,
+      zoom: { from: 1, to: GAME_CONFIG.animations.timeUpZoom.target },
+      duration: GAME_CONFIG.animations.timeUpZoom.durationMs,
       yoyo: true,
-      ease: 'Sine.easeInOut'
+      ease: GAME_CONFIG.animations.timeUpZoom.ease
     });
   }
 
@@ -135,7 +150,12 @@ export class GameScene extends Phaser.Scene {
     sprite.on('pointerout', () => this.onHover(tile, false));
 
     if (animateDrop) {
-      this.tileRenderer.spawnDrop(sprite, glow, start.y, Phaser.Math.Between(DROP_DURATION, DROP_DURATION + 80), col * 12);
+      const dropDuration = Phaser.Math.Between(
+        GAME_CONFIG.animations.drop.durationMs,
+        GAME_CONFIG.animations.drop.durationMs + GAME_CONFIG.animations.drop.jitterMs
+      );
+      const dropDelay = col * GAME_CONFIG.grid.spawnColumnDelayMs;
+      this.tileRenderer.spawnDrop(sprite, glow, start.y, dropDuration, dropDelay);
     }
 
     return tile;
@@ -150,9 +170,9 @@ export class GameScene extends Phaser.Scene {
     }
     this.tweens.add({
       targets: tile.sprite,
-      scale: isOver ? 1.06 : 1,
-      duration: 90,
-      ease: 'Sine.easeOut'
+      scale: isOver ? GAME_CONFIG.animations.hover.scale : GAME_CONFIG.animations.hoverOutScale,
+      duration: GAME_CONFIG.animations.hover.durationMs,
+      ease: GAME_CONFIG.animations.hover.ease
     });
   }
 
@@ -187,17 +207,17 @@ export class GameScene extends Phaser.Scene {
     if (this.selected && this.selected !== tile) {
       this.tweens.add({
         targets: this.selected.sprite,
-        scale: 1,
-        duration: 90
+        scale: GAME_CONFIG.animations.deselect.scale,
+        duration: GAME_CONFIG.animations.deselect.durationMs
       });
     }
     this.selected = tile;
     if (tile) {
       this.tweens.add({
         targets: tile.sprite,
-        scale: 1.12,
-        duration: 110,
-        ease: 'Back.easeOut'
+        scale: GAME_CONFIG.animations.select.scale,
+        duration: GAME_CONFIG.animations.select.durationMs,
+        ease: GAME_CONFIG.animations.select.ease
       });
     }
   }
@@ -206,9 +226,9 @@ export class GameScene extends Phaser.Scene {
     if (this.selected) {
       this.tweens.add({
         targets: this.selected.sprite,
-        scale: 1,
-        duration: 90,
-        ease: 'Sine.easeOut'
+        scale: GAME_CONFIG.animations.deselect.scale,
+        duration: GAME_CONFIG.animations.deselect.durationMs,
+        ease: GAME_CONFIG.animations.deselect.ease
       });
     }
     this.selected = null;
@@ -227,7 +247,7 @@ export class GameScene extends Phaser.Scene {
     this.gridManager.swap(tileA, tileB);
 
     const novaGroup = this.gridManager.findNovaMatch();
-    if (novaGroup.size >= 3) {
+    if (novaGroup.size >= GAME_CONFIG.rules.supernovaNovaCount) {
       const matchesGroups = [{ tiles: Array.from(novaGroup) }];
       await this.resolveMatches(matchesGroups, 1);
       this.isProcessing = false;
@@ -270,8 +290,8 @@ export class GameScene extends Phaser.Scene {
     if (tile.special === 'supernova') {
       // supernova purge: ajoute la couleur cible sur tous les matches
       const targetType = this.specialTriggerType.get(tile) ?? tile.type;
-      for (let r = 0; r < GRID_SIZE; r += 1) {
-        for (let c = 0; c < GRID_SIZE; c += 1) {
+      for (let r = 0; r < GAME_CONFIG.grid.rows; r += 1) {
+        for (let c = 0; c < GAME_CONFIG.grid.cols; c += 1) {
           const t = this.gridManager.getTile(r, c);
           if (t && t.type === targetType && !base.normals.includes(t) && !base.specials.includes(t)) {
             base.normals.push(t);
@@ -283,7 +303,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private animateSwap(tileA: Tile, tileB: Tile): Promise<void> {
-    return this.tileRenderer.swap(tileA, tileB, TURN_DURATION);
+    return this.tileRenderer.swap(tileA, tileB, GAME_CONFIG.animations.swap.durationMs);
   }
 
   private bumpTiles(tiles: Tile[]): void {
@@ -296,16 +316,16 @@ export class GameScene extends Phaser.Scene {
     while (currentGroups.length > 0) {
       const allTiles = new Set<Tile>();
       currentGroups.forEach((g) => g.tiles.forEach((t) => allTiles.add(t)));
-    const { batches: steps, specials: specialAssignments } = this.matchResolver.resolve(
-      currentGroups,
-      allTiles,
-      this.gridManager,
-      this.lastSwap || undefined
-    );
+      const { batches: steps, specials: specialAssignments } = this.matchResolver.resolve(
+        currentGroups,
+        allTiles,
+        this.gridManager,
+        this.lastSwap || undefined
+      );
       for (let i = 0; i < steps.length; i += 1) {
         const batch = steps[i];
         if (i > 0) {
-          await this.delay(260);
+          await this.delay(GAME_CONFIG.animations.cascadeDelayMs);
         }
         const assignments = i === 0 ? specialAssignments : new Map<Tile, SpecialType>();
         await this.handleMatchSet(batch, assignments, cascade);
@@ -319,10 +339,11 @@ export class GameScene extends Phaser.Scene {
 
   private async handleMatchSet(matchTiles: Set<Tile>, specials: Map<Tile, SpecialType>, chain: number): Promise<void> {
     const tileCount = matchTiles.size;
-    const lineBonus = tileCount >= 4 ? tileCount * 4 : 0;
-    const cascadeBonus = chain > 1 ? chain * 5 : 0;
-    this.addScore(tileCount * 10 + lineBonus + cascadeBonus);
-    this.cameras.main.shake(70, 0.0025);
+    const lineBonus =
+      tileCount >= GAME_CONFIG.rules.lineMatchLength ? tileCount * GAME_CONFIG.rules.bonusPerTileForLine : 0;
+    const cascadeBonus = chain > 1 ? chain * GAME_CONFIG.rules.cascadeBonusPerChain : 0;
+    this.addScore(tileCount * GAME_CONFIG.rules.pointsPerTile + lineBonus + cascadeBonus);
+    this.cameras.main.shake(GAME_CONFIG.effects.cameraShake.durationMs, GAME_CONFIG.effects.cameraShake.intensity);
     await this.playMatchEffects(matchTiles, specials);
   }
 
@@ -361,14 +382,30 @@ export class GameScene extends Phaser.Scene {
 
     moved.forEach((tile) => {
       const destination = this.cellToWorld(tile.row, tile.col);
-      const delay = 18 + tile.col * 6;
-      fallPromises.push(this.tileRenderer.moveTo(tile.sprite, destination.x, destination.y, DROP_DURATION, delay));
+      const delay = GAME_CONFIG.animations.matchWaveDelayMs + tile.col * GAME_CONFIG.grid.columnDelayMs;
+      fallPromises.push(
+        this.tileRenderer.moveTo(
+          tile.sprite,
+          destination.x,
+          destination.y,
+          GAME_CONFIG.animations.drop.durationMs,
+          delay
+        )
+      );
     });
 
     spawned.forEach((tile, i) => {
       const destination = this.cellToWorld(tile.row, tile.col);
-      tile.sprite.y = destination.y - TILE_SIZE - 80;
-      fallPromises.push(this.tileRenderer.moveTo(tile.sprite, destination.x, destination.y, DROP_DURATION, i * 20 + tile.col * 6));
+      tile.sprite.y = destination.y - GAME_CONFIG.grid.tileSize - GAME_CONFIG.grid.spawnOffset;
+      fallPromises.push(
+        this.tileRenderer.moveTo(
+          tile.sprite,
+          destination.x,
+          destination.y,
+          GAME_CONFIG.animations.drop.durationMs,
+          i * GAME_CONFIG.grid.spawnDelayMs + tile.col * GAME_CONFIG.grid.columnDelayMs
+        )
+      );
     });
 
     await Promise.all(fallPromises);
@@ -376,8 +413,8 @@ export class GameScene extends Phaser.Scene {
 
   private cellToWorld(row: number, col: number): { x: number; y: number } {
     return {
-      x: this.boardOffset.x + col * TILE_SIZE + TILE_SIZE / 2,
-      y: this.boardOffset.y + row * TILE_SIZE + TILE_SIZE / 2
+      x: this.boardOffset.x + col * GAME_CONFIG.grid.tileSize + GAME_CONFIG.grid.tileSize / 2,
+      y: this.boardOffset.y + row * GAME_CONFIG.grid.tileSize + GAME_CONFIG.grid.tileSize / 2
     };
   }
 
@@ -385,7 +422,7 @@ export class GameScene extends Phaser.Scene {
     this.score += amount;
     if (this.score > this.bestScore) {
       this.bestScore = this.score;
-      localStorage.setItem('runeshards-best', `${this.bestScore}`);
+      localStorage.setItem(GAME_CONFIG.ui.bestScoreKey, `${this.bestScore}`);
     }
     this.updateHud();
   }
@@ -395,7 +432,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private loadBestScore(): number {
-    const raw = localStorage.getItem('runeshards-best');
+    const raw = localStorage.getItem(GAME_CONFIG.ui.bestScoreKey);
     const value = raw ? Number.parseInt(raw, 10) : 0;
     return Number.isFinite(value) ? value : 0;
   }
@@ -436,7 +473,7 @@ export class GameScene extends Phaser.Scene {
     const shuffle = () => Phaser.Utils.Array.Shuffle(types.slice());
     let shuffled = shuffle();
     let attempts = 0;
-    while (attempts < 40) {
+    while (attempts < GAME_CONFIG.animations.reshuffle.maxAttempts) {
       tiles.forEach((tile, idx) => {
         tile.type = shuffled[idx];
         tile.special = null;
@@ -455,7 +492,7 @@ export class GameScene extends Phaser.Scene {
 
   private maybeShowHint(): void {
     if (this.isProcessing || this.timer <= 0) return;
-    if (this.time.now - this.lastActionTime < IDLE_HINT_MS) return;
+    if (this.time.now - this.lastActionTime < GAME_CONFIG.animations.hint.idleDelayMs) return;
     if (this.hintTween && this.hintTween.isPlaying()) return;
     const pair = this.findHint();
     if (!pair) return;
@@ -465,8 +502,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private findHint(): Tile[] | null {
-    for (let row = 0; row < GRID_SIZE; row += 1) {
-      for (let col = 0; col < GRID_SIZE; col += 1) {
+    for (let row = 0; row < GAME_CONFIG.grid.rows; row += 1) {
+      for (let col = 0; col < GAME_CONFIG.grid.cols; col += 1) {
         const right = this.gridManager.getTile(row, col + 1);
         const down = this.gridManager.getTile(row + 1, col);
         if (right && this.checkSwapForMatch(row, col, row, col + 1)) {

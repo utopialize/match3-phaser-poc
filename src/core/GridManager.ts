@@ -3,11 +3,15 @@ import { Tile } from '../types';
 export class GridManager {
   private size: number;
   private tileTypes: number;
+  private minMatch: number;
+  private supernovaNovaCount: number;
   grid: (Tile | null)[][];
 
-  constructor(size: number, tileTypes: number) {
+  constructor(size: number, tileTypes: number, minMatch: number, supernovaNovaCount: number) {
     this.size = size;
     this.tileTypes = tileTypes;
+    this.minMatch = minMatch;
+    this.supernovaNovaCount = supernovaNovaCount;
     this.grid = [];
   }
 
@@ -81,13 +85,13 @@ export class GridManager {
       for (let col = 0; col < this.size; col += 1) {
         const tile = this.grid[row][col];
         if (!tile || tile.special !== 'nova') {
-          if (streak.length >= 3) streak.forEach((t) => result.add(t));
+          if (streak.length >= this.supernovaNovaCount) streak.forEach((t) => result.add(t));
           streak = [];
           continue;
         }
         streak.push(tile);
       }
-      if (streak.length >= 3) streak.forEach((t) => result.add(t));
+      if (streak.length >= this.supernovaNovaCount) streak.forEach((t) => result.add(t));
     }
     // cols
     for (let col = 0; col < this.size; col += 1) {
@@ -95,13 +99,13 @@ export class GridManager {
       for (let row = 0; row < this.size; row += 1) {
         const tile = this.grid[row][col];
         if (!tile || tile.special !== 'nova') {
-          if (streak.length >= 3) streak.forEach((t) => result.add(t));
+          if (streak.length >= this.supernovaNovaCount) streak.forEach((t) => result.add(t));
           streak = [];
           continue;
         }
         streak.push(tile);
       }
-      if (streak.length >= 3) streak.forEach((t) => result.add(t));
+      if (streak.length >= this.supernovaNovaCount) streak.forEach((t) => result.add(t));
     }
     return result;
   }
@@ -114,18 +118,18 @@ export class GridManager {
       for (let col = 0; col < this.size; col += 1) {
         const tile = this.grid[row][col];
         if (!tile || tile.special) {
-          if (streak.length >= 3) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
+          if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
           streak = [];
           continue;
         }
         if (streak.length === 0 || streak[streak.length - 1].type === tile.type) {
           streak.push(tile);
         } else {
-          if (streak.length >= 3) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
+          if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
           streak = [tile];
         }
       }
-      if (streak.length >= 3) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
+      if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'row', type: streak[0].type });
     }
     // Columns
     for (let col = 0; col < this.size; col += 1) {
@@ -133,18 +137,18 @@ export class GridManager {
       for (let row = 0; row < this.size; row += 1) {
         const tile = this.grid[row][col];
         if (!tile || tile.special) {
-          if (streak.length >= 3) groups.push({ tiles: [...streak], orientation: 'col', type: streak[0].type });
+          if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'col', type: streak[0].type });
           streak = [];
           continue;
         }
         if (streak.length === 0 || streak[streak.length - 1].type === tile.type) {
           streak.push(tile);
         } else {
-          if (streak.length >= 3) groups.push({ tiles: [...streak], orientation: 'col', type: streak[0].type });
+          if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'col', type: streak[0].type });
           streak = [tile];
         }
       }
-      if (streak.length >= 3) groups.push({ tiles: [...streak], orientation: 'col', type: streak[0].type });
+      if (streak.length >= this.minMatch) groups.push({ tiles: [...streak], orientation: 'col', type: streak[0].type });
     }
     return groups;
   }
@@ -199,10 +203,26 @@ export class GridManager {
     const left2 = this.grid[row]?.[col - 2];
     const up1 = this.grid[row - 1]?.[col];
     const up2 = this.grid[row - 2]?.[col];
-    if (left1 && left2 && !left1.special && !left2.special && left1.type === type && left2.type === type) {
+    if (
+      this.minMatch <= 3 &&
+      left1 &&
+      left2 &&
+      !left1.special &&
+      !left2.special &&
+      left1.type === type &&
+      left2.type === type
+    ) {
       return true;
     }
-    if (up1 && up2 && !up1.special && !up2.special && up1.type === type && up2.type === type) {
+    if (
+      this.minMatch <= 3 &&
+      up1 &&
+      up2 &&
+      !up1.special &&
+      !up2.special &&
+      up1.type === type &&
+      up2.type === type
+    ) {
       return true;
     }
     return false;
@@ -220,11 +240,11 @@ export class GridManager {
     let count = 1;
     for (let c = col - 1; c >= 0 && this.grid[row][c]?.type === type && !this.grid[row][c]?.special; c -= 1) count += 1;
     for (let c = col + 1; c < this.size && this.grid[row][c]?.type === type && !this.grid[row][c]?.special; c += 1) count += 1;
-    if (count >= 3) return true;
+    if (count >= this.minMatch) return true;
 
     count = 1;
     for (let r = row - 1; r >= 0 && this.grid[r][col]?.type === type && !this.grid[r][col]?.special; r -= 1) count += 1;
     for (let r = row + 1; r < this.size && this.grid[r][col]?.type === type && !this.grid[r][col]?.special; r += 1) count += 1;
-    return count >= 3;
+    return count >= this.minMatch;
   }
 }

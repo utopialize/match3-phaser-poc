@@ -1,4 +1,5 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
+import { GAME_CONFIG } from '../config/GameConfig';
 import { GemSpec, SpecialType, Tile } from '../types';
 
 export class TileRenderer {
@@ -16,18 +17,20 @@ export class TileRenderer {
   }
 
   spawnDrop(sprite: Phaser.GameObjects.Sprite, glow: Phaser.GameObjects.Sprite, targetY: number, duration: number, delay: number): void {
-    sprite.y = targetY - Phaser.Math.Between(150, 260);
+    const startOffset = Phaser.Math.Between(GAME_CONFIG.grid.dropSpawnRange.min, GAME_CONFIG.grid.dropSpawnRange.max);
+    sprite.y = targetY - startOffset;
     this.scene.tweens.add({
       targets: [sprite],
       y: targetY,
       duration,
-      ease: 'Quad.easeOut',
+      ease: GAME_CONFIG.animations.drop.spawnEase,
       delay,
       onComplete: () => {
         this.scene.tweens.add({
           targets: glow,
-          alpha: 0.16,
-          duration: 120,
+          alpha: GAME_CONFIG.animations.drop.spawnGlow.alpha,
+          duration: GAME_CONFIG.animations.drop.spawnGlow.durationMs,
+          ease: GAME_CONFIG.animations.drop.spawnGlow.ease,
           yoyo: true
         });
       }
@@ -48,7 +51,7 @@ export class TileRenderer {
         y,
         duration,
         delay,
-        ease: 'Back.easeOut',
+        ease: GAME_CONFIG.animations.drop.ease,
         onComplete: () => resolve()
       });
     });
@@ -57,45 +60,52 @@ export class TileRenderer {
   bump(tiles: Tile[]): void {
     this.scene.tweens.add({
       targets: tiles.map((t) => t.sprite),
-      scaleX: { from: 1, to: 1.08 },
-      scaleY: { from: 1, to: 0.94 },
+      scaleX: { from: 1, to: GAME_CONFIG.animations.bump.scaleX },
+      scaleY: { from: 1, to: GAME_CONFIG.animations.bump.scaleY },
       yoyo: true,
-      duration: 80,
-      ease: 'Back.easeInOut'
+      duration: GAME_CONFIG.animations.bump.durationMs,
+      ease: GAME_CONFIG.animations.bump.ease
     });
   }
 
   destroyTile(tile: Tile): Promise<void> {
     const pos = { x: tile.sprite.x, y: tile.sprite.y };
-    const flash = this.scene.add.rectangle(pos.x, pos.y, tile.sprite.width, tile.sprite.height, 0xffffff, 0.25);
+    const flash = this.scene.add.rectangle(
+      pos.x,
+      pos.y,
+      tile.sprite.width,
+      tile.sprite.height,
+      GAME_CONFIG.effects.flash.color,
+      GAME_CONFIG.effects.flash.alpha
+    );
     flash.setDepth(2);
     this.scene.tweens.add({
       targets: flash,
       alpha: 0,
-      scale: 1.4,
-      duration: 160,
-      ease: 'Sine.easeOut',
+      scale: GAME_CONFIG.effects.flash.scale,
+      duration: GAME_CONFIG.effects.flash.durationMs,
+      ease: GAME_CONFIG.effects.flash.ease,
       onComplete: () => flash.destroy()
     });
 
     const emitter = this.scene.add.particles(tile.sprite.x, tile.sprite.y, 'spark', {
-      speed: { min: 80, max: 140 },
-      lifespan: 320,
-      scale: { start: 0.8, end: 0 },
-      quantity: 12,
-      angle: { min: 0, max: 360 },
+      speed: { ...GAME_CONFIG.effects.particles.speed },
+      lifespan: GAME_CONFIG.effects.particles.lifespanMs,
+      scale: { ...GAME_CONFIG.effects.particles.scale },
+      quantity: GAME_CONFIG.effects.particles.quantity,
+      angle: { ...GAME_CONFIG.effects.particles.angle },
       tint: this.colorFor(tile.type),
-      blendMode: 'ADD'
+      blendMode: GAME_CONFIG.effects.particles.blendMode
     });
 
     return new Promise<void>((resolve) => {
       this.scene.tweens.add({
         targets: tile.sprite,
-        scale: 1.35,
+        scale: GAME_CONFIG.animations.destroy.scale,
         alpha: 0,
-        angle: Phaser.Math.Between(-10, 10),
-        duration: 220,
-        ease: 'Back.easeIn',
+        angle: Phaser.Math.Between(-GAME_CONFIG.animations.destroy.angleJitter, GAME_CONFIG.animations.destroy.angleJitter),
+        duration: GAME_CONFIG.animations.destroy.durationMs,
+        ease: GAME_CONFIG.animations.destroy.ease,
         onComplete: () => {
           emitter.destroy();
           tile.sprite.destroy();
@@ -110,10 +120,10 @@ export class TileRenderer {
       tile.special = special;
       this.scene.tweens.add({
         targets: tile.sprite,
-        scale: 1.15,
-        duration: 140,
+        scale: GAME_CONFIG.animations.upgrade.scale,
+        duration: GAME_CONFIG.animations.upgrade.durationMs,
         yoyo: true,
-        ease: 'Back.easeOut',
+        ease: GAME_CONFIG.animations.upgrade.ease,
         onComplete: () => resolve()
       });
     });
@@ -126,11 +136,11 @@ export class TileRenderer {
           new Promise<void>((resolve) => {
             this.scene.tweens.add({
               targets: tile.sprite,
-              angle: { from: -6, to: 6 },
-              duration: 120,
-              ease: 'Sine.easeInOut',
+              angle: { from: -GAME_CONFIG.animations.reshuffle.wobbleAngle, to: GAME_CONFIG.animations.reshuffle.wobbleAngle },
+              duration: GAME_CONFIG.animations.reshuffle.durationMs,
+              ease: GAME_CONFIG.animations.reshuffle.ease,
               yoyo: true,
-              repeat: 1,
+              repeat: GAME_CONFIG.animations.reshuffle.repeat,
               onComplete: () => resolve()
             });
           })
@@ -141,11 +151,11 @@ export class TileRenderer {
   hintPulse(sprites: Phaser.GameObjects.Sprite[]): Phaser.Tweens.Tween {
     return this.scene.tweens.add({
       targets: sprites,
-      scale: 1.12,
-      duration: 220,
-      ease: 'Sine.easeInOut',
+      scale: GAME_CONFIG.animations.hint.pulseScale,
+      duration: GAME_CONFIG.animations.hint.durationMs,
+      ease: GAME_CONFIG.animations.hint.ease,
       yoyo: true,
-      repeat: 5
+      repeat: GAME_CONFIG.animations.hint.repeat
     });
   }
 }

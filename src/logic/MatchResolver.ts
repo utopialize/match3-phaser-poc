@@ -1,3 +1,4 @@
+﻿import { GAME_CONFIG, RuleConfig } from '../config/GameConfig';
 import { SpecialType, Tile } from '../types';
 import { GridLookup } from './types';
 
@@ -10,6 +11,12 @@ export type ResolveResult = {
 };
 
 export class MatchResolver {
+  private rules: RuleConfig;
+
+  constructor(rules: RuleConfig = GAME_CONFIG.rules) {
+    this.rules = rules;
+  }
+
   resolve(groups: MatchGroup[], initialTiles: Set<Tile>, grid: GridLookup, lastSwap?: Tile[]): ResolveResult {
     const specials = this.computeSpecialAssignments(groups, initialTiles, lastSwap);
     const suppressed = this.buildSuppressedSpecials(initialTiles, specials);
@@ -25,32 +32,32 @@ export class MatchResolver {
     // Straight lines
     [...rowGroups, ...colGroups].forEach((group) => {
       const length = group.tiles.length;
-      if (length < 4 || !group.orientation) return;
+      if (length < this.rules.lineMatchLength || !group.orientation) return;
       const origin = this.pickSpecialOrigin(group.tiles, lastSwap);
       if (!origin) return;
-      if (length >= 5) {
+      if (length >= this.rules.novaMatchLength) {
         specials.set(origin, 'nova');
-      } else if (length === 4) {
+      } else if (length === this.rules.lineMatchLength) {
         specials.set(origin, group.orientation === 'row' ? 'line-h' : 'line-v');
       }
     });
 
-    // L / T / croix : intersection row + col même couleur total >=5 -> nova
+    // L / T / croix : intersection row + col meme couleur total >= novaMatchLength -> nova
     rowGroups.forEach((r) => {
       colGroups
         .filter((c) => c.type === r.type && c.tiles.some((t) => r.tiles.includes(t)))
         .forEach((c) => {
           const union = new Set<Tile>([...r.tiles, ...c.tiles]);
-          if (union.size >= 5) {
+          if (union.size >= this.rules.novaMatchLength) {
             const origin = this.pickSpecialOrigin([...union], lastSwap);
             if (origin) specials.set(origin, 'nova');
           }
         });
     });
 
-    // Supernova : 3+ nova specials matchés ensemble
+    // Supernova : plusieurs novas combinees
     const novaTiles = [...allTiles].filter((t) => t.special === 'nova');
-    if (novaTiles.length >= 3) {
+    if (novaTiles.length >= this.rules.supernovaNovaCount) {
       const origin = this.pickSpecialOrigin(novaTiles, lastSwap);
       if (origin) specials.set(origin, 'supernova');
     }
@@ -112,7 +119,7 @@ export class MatchResolver {
     };
 
     if (tile.special === 'supernova') {
-      // supernova: chain every other spécial; color purge géré dans la scène
+      // supernova: chain every other special; color purge gere dans la scene
       for (let r = 0; r < size; r += 1) {
         for (let c = 0; c < size; c += 1) {
           const target = grid.getTile(r, c);
@@ -131,8 +138,8 @@ export class MatchResolver {
         push(grid.getTile(r, tile.col));
       }
     } else if (tile.special === 'nova') {
-      for (let dr = -1; dr <= 1; dr += 1) {
-        for (let dc = -1; dc <= 1; dc += 1) {
+      for (let dr = -this.rules.novaBlastRadius; dr <= this.rules.novaBlastRadius; dr += 1) {
+        for (let dc = -this.rules.novaBlastRadius; dc <= this.rules.novaBlastRadius; dc += 1) {
           const r = tile.row + dr;
           const c = tile.col + dc;
           if (r >= 0 && r < size && c >= 0 && c < size) {
