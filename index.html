@@ -1,23 +1,23 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Runeshards: Tower Shift</title>
+    <title>Match-3 Starter</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
-        --bg: #0e1320;
-        --panel: #1a1f2e;
-        --accent: #38e8ff;
-        --accent-2: #ead08a;
-        --text: #e0e5e9;
-        --muted: #9ca3af;
+        --bg: #1a1a1a;
+        --panel: #2a2a2a;
+        --accent: #4a90e2;
+        --accent-2: #f0b64f;
+        --text: #ffffff;
+        --muted: #9aa0a6;
       }
       * {
         box-sizing: border-box;
@@ -25,11 +25,9 @@
       body {
         margin: 0;
         min-height: 100vh;
-        background: radial-gradient(circle at 20% 25%, rgba(56, 232, 255, 0.08), transparent 35%),
-          radial-gradient(circle at 80% 10%, rgba(234, 208, 138, 0.12), transparent 35%),
-          linear-gradient(160deg, #0e1320 0%, #0e1320 35%, #0f1526 65%, #0c111c 100%);
+        background: linear-gradient(160deg, #111111 0%, #1a1a1a 45%, #111111 100%);
         color: var(--text);
-        font-family: 'Barlow', system-ui, -apple-system, sans-serif;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
         display: grid;
         place-items: center;
       }
@@ -37,11 +35,10 @@
         width: 880px;
         max-width: 95vw;
         padding: 16px;
-        background: linear-gradient(135deg, #1a1f2e, #111726);
-        border: 1px solid #222a3a;
+        background: linear-gradient(135deg, #2a2a2a, #232323);
+        border: 1px solid #333333;
         border-radius: 18px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.02),
-          0 0 0 1px rgba(30, 41, 59, 0.4);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
       }
       header {
         display: flex;
@@ -55,7 +52,7 @@
         letter-spacing: 0.5px;
         margin: 0;
         color: var(--accent);
-        text-shadow: 0 0 12px rgba(56, 232, 255, 0.3);
+        text-shadow: none;
       }
       #hud {
         display: flex;
@@ -67,64 +64,56 @@
       .pill {
         padding: 8px 12px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(255, 255, 255, 0.04);
         border: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
       button {
         padding: 10px 14px;
         border-radius: 10px;
         border: none;
-        background: linear-gradient(135deg, #ead08a, #d39c4a);
-        color: #0e1320;
+        background: linear-gradient(135deg, var(--accent), #3f7ec4);
+        color: #ffffff;
         font-weight: 700;
         cursor: pointer;
-        box-shadow: 0 10px 25px rgba(234, 208, 138, 0.28);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
         transition: transform 0.1s ease, box-shadow 0.2s ease;
       }
       button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 12px 30px rgba(234, 208, 138, 0.4);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
       }
       #game-container {
         width: 100%;
         height: 620px;
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid #1f2738;
-        background: radial-gradient(circle at 70% 20%, rgba(56, 232, 255, 0.08), transparent 40%),
-          radial-gradient(circle at 15% 70%, rgba(234, 208, 138, 0.08), transparent 40%),
-          #0f1526;
+        border: 1px solid #1f1f1f;
+        background: #1a1a1a;
       }
     </style>
   </head>
   <body>
     <div id="app">
       <header>
-        <h1>Runeshards // Tour Fracturée</h1>
+        <h1 id="game-title"></h1>
         <div id="hud">
-          <div class="pill" id="score">Flux: 0</div>
-          <div class="pill" id="best-score">Record: 0</div>
-          <div class="pill" id="timer">Cycle: 120s</div>
-          <button id="new-game">Nouveau Cycle</button>
+          <div class="pill" id="score">Score: 0</div>
+          <div class="pill" id="best-score">Best: 0</div>
+          <div class="pill" id="timer">Time: 120s</div>
+          <button id="new-game"></button>
         </div>
       </header>
       <div id="dev-panel" style="display:none; margin-bottom:8px; gap:8px; align-items:center;">
         <span style="color: var(--muted); font-size:13px;">Dev Mode</span>
         <label style="color: var(--muted); font-size:13px;">Type
-          <select id="dev-type">
-            <option value="0">Rage</option>
-            <option value="1">Vitalité</option>
-            <option value="2">Arcane</option>
-            <option value="3">Garde</option>
-            <option value="4">Fortune</option>
-          </select>
+          <select id="dev-type"></select>
         </label>
         <label style="color: var(--muted); font-size:13px;">Special
           <select id="dev-special">
-            <option value="none">Aucune</option>
-            <option value="line-h">Surge H</option>
-            <option value="line-v">Surge V</option>
+            <option value="none">None</option>
+            <option value="line-h">Line H</option>
+            <option value="line-v">Line V</option>
             <option value="nova">Nova</option>
             <option value="supernova">Supernova</option>
           </select>

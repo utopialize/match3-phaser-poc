@@ -5,6 +5,7 @@
 
 import Phaser from 'phaser';
 import { GemSpec } from '../types';
+import { ACTIVE_THEME } from './ThemeConfig';
 
 /**
  * Configuration for the Phaser viewport canvas.
@@ -78,16 +79,18 @@ export interface GemVisualConfig {
 /**
  * Parametric description of rune strokes used when drawing gem sigils.
  *
- * @property kind - Shape type; either a set of points or a star pattern.
+ * @property kind - Shape type: point list, star, or circle.
  * @property points - Sequence of relative coordinates to draw for point-based runes.
  * @property close - Whether to close the path for point-based runes.
  * @property spikes - Number of spikes for star runes.
  * @property outerRadius - Outer radius for star spikes.
  * @property innerRadius - Inner radius for star spikes.
+ * @property radius - Radius for circular runes.
  */
 export type RuneShape =
   | { kind: 'points'; points: { x: number; y: number }[]; close: boolean }
-  | { kind: 'star'; spikes: number; outerRadius: number; innerRadius: number };
+  | { kind: 'star'; spikes: number; outerRadius: number; innerRadius: number }
+  | { kind: 'circle'; radius: number };
 
 /**
  * Configuration for available gem types and their associated visuals.
@@ -302,129 +305,129 @@ export interface GameConfiguration {
  */
 export const GAME_CONFIG: GameConfiguration = {
   viewport: {
-    width: 800, // Largeur de la fenêtre de jeu
-    height: 600, // Hauteur de la fenêtre de jeu
-    backgroundColor: '#0e1320' // Couleur de fond du canvas
+    width: 800, // Game canvas width
+    height: 600, // Game canvas height
+    backgroundColor: ACTIVE_THEME.colors.background // Canvas background color (theme-driven)
   },
   grid: {
-    rows: 8, // Nombre de lignes de la grille
-    cols: 8, // Nombre de colonnes de la grille
-    tileTypes: 5, // Nombre de types de gemmes disponibles
-    tileSize: 68, // Taille d'une tuile en pixels
-    boardOffsetY: 12, // Décalage vertical pour centrer la grille
-    spawnOffset: 80, // Décalage vertical initial pour l'apparition des nouvelles tuiles
-    dropSpawnRange: { min: 150, max: 260 }, // Amplitude du spawn aléatoire pour l'arrivée des tuiles
-    columnDelayMs: 6, // Décalage par colonne pour échelonner les chutes
-    spawnColumnDelayMs: 12, // Décalage par colonne pour l'apparition initiale
-    spawnDelayMs: 20 // Décalage entre les tuiles générées sur la même colonne
+    rows: 8, // Grid rows
+    cols: 8, // Grid columns
+    tileTypes: 5, // Number of gem families
+    tileSize: 68, // Tile size in pixels
+    boardOffsetY: 12, // Vertical offset to center the board
+    spawnOffset: 80, // Vertical offset for new tiles entering
+    dropSpawnRange: { min: 150, max: 260 }, // Randomized spawn height range for drops
+    columnDelayMs: 6, // Per-column staggering for gravity
+    spawnColumnDelayMs: 12, // Per-column staggering for initial spawn
+    spawnDelayMs: 20 // Delay between spawns within a column
   },
   gems: {
     specs: [
-      { name: 'rage', primary: 0xff4b55, secondary: 0xa02030 },
-      { name: 'vitality', primary: 0x47e47d, secondary: 0x2d7a4f },
-      { name: 'arcane', primary: 0x57d4ff, secondary: 0x1d4e89 },
-      { name: 'guard', primary: 0xf2d380, secondary: 0xb8860b },
-      { name: 'fortune', primary: 0xa875ff, secondary: 0x6b46c1 }
-    ], // Spécifications visuelles des gemmes
+      { name: 'red', primary: 0xff0000, secondary: 0xff4d4d },
+      { name: 'green', primary: 0x00ff00, secondary: 0x4dff4d },
+      { name: 'blue', primary: 0x0000ff, secondary: 0x4d4dff },
+      { name: 'yellow', primary: 0xffff00, secondary: 0xffff66 },
+      { name: 'purple', primary: 0xff00ff, secondary: 0xff66ff }
+    ], // Visual specs for each gem type
     visuals: {
-      lineOverlay: { primary: 0x352f65, secondary: 0x111827 }, // Couleurs des tuiles ligne
-      novaOverlay: { primary: 0xfbf6e3, secondary: 0xd0a857 }, // Couleurs des tuiles nova
-      superNovaOverlay: { primary: 0xffffff, secondary: 0x9acdf5 }, // Couleurs des tuiles supernova
-      rune: { color: 0xe0e5e9, width: 3, alpha: 0.5 }, // Style des runes dessinées sur les gemmes
+      lineOverlay: { primary: 0x352f65, secondary: 0x111827 }, // Line special palette
+      novaOverlay: { primary: 0xfbf6e3, secondary: 0xd0a857 }, // Nova palette
+      superNovaOverlay: { primary: 0xffffff, secondary: 0x9acdf5 }, // Supernova palette
+      rune: { color: 0xe0e5e9, width: 3, alpha: 0.5 }, // Rune stroke style
       runeShapes: [
-        { kind: 'points', points: [{ x: 0, y: -12 }, { x: 10, y: 12 }, { x: -10, y: 12 }], close: true }, // Rune rage
-        { kind: 'points', points: [{ x: -10, y: -4 }, { x: 0, y: -12 }, { x: 10, y: 6 }, { x: -2, y: 12 }], close: false }, // Rune vitalité
-        { kind: 'points', points: [{ x: 0, y: -14 }, { x: 10, y: 0 }, { x: 0, y: 14 }, { x: -10, y: 0 }], close: true }, // Rune arcane
-        { kind: 'points', points: [{ x: 0, y: -12 }, { x: 10, y: -2 }, { x: 6, y: 12 }, { x: -6, y: 12 }, { x: -10, y: -2 }], close: true }, // Rune garde
-        { kind: 'star', spikes: 4, outerRadius: 12, innerRadius: 6 } // Rune fortune en étoile
+        { kind: 'circle', radius: 10 }, // Basic circle
+        { kind: 'points', points: [{ x: -10, y: -10 }, { x: 10, y: -10 }, { x: 10, y: 10 }, { x: -10, y: 10 }], close: true }, // Square
+        { kind: 'points', points: [{ x: 0, y: -12 }, { x: 12, y: 12 }, { x: -12, y: 12 }], close: true }, // Triangle
+        { kind: 'points', points: [{ x: 0, y: -12 }, { x: 12, y: 0 }, { x: 0, y: 12 }, { x: -12, y: 0 }], close: true }, // Diamond
+        { kind: 'star', spikes: 5, outerRadius: 12, innerRadius: 6 } // Star
       ],
-      spark: { radius: 6, color: 0xffffff }, // Taille et couleur des particules spark
-      glow: { color: 0x38e8ff, alpha: 0.14, cornerRadius: 18 }, // Style du halo lumineux sous les tuiles
+      spark: { radius: 6, color: 0xffffff }, // Particle size and color
+      glow: { color: 0x38e8ff, alpha: 0.14, cornerRadius: 18 }, // Glow halo under tiles
       tileShape: {
-        inset: 2, // Décalage de la bordure extérieure de la gemme
-        innerInset: 5, // Décalage de la zone intérieure de la gemme
-        border: 12, // Rayon de bordure du cadre extérieur
-        innerBorder: 10, // Rayon de bordure du cadre intérieur
-        stroke: { width: 2, color: 0x38e8ff, alpha: 0.25 } // Contour lumineux de la gemme
+        inset: 2, // Outer border inset
+        innerInset: 5, // Inner body inset
+        border: 12, // Outer corner radius
+        innerBorder: 10, // Inner corner radius
+        stroke: { width: 2, color: 0xffffff, alpha: 0.16 } // Neutral highlight stroke
       },
       lineOverlayStyle: {
-        color: 0x5b21b6, // Couleur de la bande pour les tuiles ligne
-        width: 8, // Épaisseur de la bande pour les tuiles ligne
-        inset: 12, // Décalage de la bande par rapport aux bords
-        alpha: 0.6, // Opacité de la bande ligne
-        sigil: { color: 0xffffff, width: 3, alpha: 0.8 }, // Style du glyphe sur les tuiles ligne
-        sigilOffsets: { long: 14, mid: 2, short: 6 } // Coordonnées relatives du glyphe ligne
+        color: 0x5b21b6, // Line stripe color
+        width: 8, // Line stripe thickness
+        inset: 12, // Stripe inset from edges
+        alpha: 0.6, // Stripe opacity
+        sigil: { color: 0xffffff, width: 3, alpha: 0.8 }, // Line glyph style
+        sigilOffsets: { long: 14, mid: 2, short: 6 } // Glyph coordinate presets
       },
       novaStyle: {
-        outerColor: 0xf5e6c5, // Couleur de l'anneau extérieur nova
-        outerWidth: 4, // Épaisseur de l'anneau extérieur nova
-        outerAlpha: 0.75, // Opacité de l'anneau extérieur nova
-        innerColor: 0xffffff, // Couleur de l'anneau intérieur nova
-        innerWidth: 2, // Épaisseur de l'anneau intérieur nova
-        innerAlpha: 0.6, // Opacité de l'anneau intérieur nova
-        sigil: { color: 0xf4c76c, width: 3, alpha: 0.9 }, // Style du glyphe nova central
-        spikes: { count: 8, innerRadius: 6, outerRadius: 16 } // Paramètres des pointes du glyphe nova
+        outerColor: 0xf5e6c5, // Outer ring color
+        outerWidth: 4, // Outer ring thickness
+        outerAlpha: 0.75, // Outer ring opacity
+        innerColor: 0xffffff, // Inner ring color
+        innerWidth: 2, // Inner ring thickness
+        innerAlpha: 0.6, // Inner ring opacity
+        sigil: { color: 0xf4c76c, width: 3, alpha: 0.9 }, // Central nova glyph
+        spikes: { count: 8, innerRadius: 6, outerRadius: 16 } // Nova glyph spikes
       },
       superNovaStyle: {
-        outerColor: 0xffffff, // Couleur de l'anneau extérieur supernova
-        outerWidth: 4, // Épaisseur de l'anneau extérieur supernova
-        outerAlpha: 0.85, // Opacité de l'anneau extérieur supernova
-        innerColor: 0x8ddcff, // Couleur de l'anneau intérieur supernova
-        innerWidth: 2, // Épaisseur de l'anneau intérieur supernova
-        innerAlpha: 0.8, // Opacité de l'anneau intérieur supernova
-        sigil: { color: 0x8ddcff, width: 3, alpha: 0.9 }, // Style du glyphe supernova
-        rays: { count: 6, innerRadius: 6, outerRadius: 18 } // Longueur et nombre de rayons supernova
+        outerColor: 0xffffff, // Supernova outer ring color
+        outerWidth: 4, // Supernova outer ring thickness
+        outerAlpha: 0.85, // Supernova outer ring opacity
+        innerColor: 0x8ddcff, // Supernova inner ring color
+        innerWidth: 2, // Supernova inner ring thickness
+        innerAlpha: 0.8, // Supernova inner ring opacity
+        sigil: { color: 0x8ddcff, width: 3, alpha: 0.9 }, // Supernova glyph
+        rays: { count: 6, innerRadius: 6, outerRadius: 18 } // Supernova ray geometry
       }
     }
   },
   animations: {
-    swap: { durationMs: 150, ease: 'Back.easeOut' }, // Durée et easing du swap
+    swap: { durationMs: 150, ease: 'Back.easeOut' }, // Swap timing
     drop: {
-      durationMs: 230, // Durée de base de chute
-      jitterMs: 80, // Variation de durée pour les chutes spawnées
-      ease: 'Back.easeOut', // Easing pour les chutes classiques
-      spawnEase: 'Quad.easeOut', // Easing pour les nouvelles tuiles
-      spawnGlow: { alpha: 0.16, durationMs: 120, ease: 'Sine.easeOut' } // Flash lumineux lors de l'atterrissage
+      durationMs: 230, // Base drop duration
+      jitterMs: 80, // Random variation for new drops
+      ease: 'Back.easeOut', // Gravity easing
+      spawnEase: 'Quad.easeOut', // Easing for newly spawned tiles
+      spawnGlow: { alpha: 0.16, durationMs: 120, ease: 'Sine.easeOut' } // Landing glow pulse
     },
-    hover: { scale: 1.06, durationMs: 90, ease: 'Sine.easeOut' }, // Animation de survol
-    select: { scale: 1.12, durationMs: 110, ease: 'Back.easeOut' }, // Mise en avant d'une tuile sélectionnée
-    deselect: { scale: 1, durationMs: 90, ease: 'Sine.easeOut' }, // Retour à la normale d'une tuile
-    bump: { scaleX: 1.08, scaleY: 0.94, durationMs: 80, ease: 'Back.easeInOut' }, // Rebond subtil pour signaler un swap invalide
-    destroy: { durationMs: 220, scale: 1.35, angleJitter: 10, ease: 'Back.easeIn' }, // Animation de destruction d'une tuile
-    upgrade: { scale: 1.15, durationMs: 140, ease: 'Back.easeOut' }, // Animation de promotion d'une tuile spéciale
-    hint: { idleDelayMs: 10000, pulseScale: 1.12, durationMs: 220, repeat: 5, ease: 'Sine.easeInOut', checkIntervalMs: 800 }, // Paramètres d'affichage des indices
-    cascadeDelayMs: 260, // Délai entre deux vagues de destruction
-    matchWaveDelayMs: 18, // Délai de base pour échelonner les chutes lors de la gravité
-    reshuffle: { wobbleAngle: 6, durationMs: 120, repeat: 1, ease: 'Sine.easeInOut', maxAttempts: 40 }, // Paramètres du wobble après reshuffle
-    hoverOutScale: 1, // Échelle cible lorsqu'on quitte un survol
-    timeUpZoom: { target: 1.02, durationMs: 200, ease: 'Sine.easeInOut' }, // Effet visuel quand le temps est écoulé
-    startupEnsurePlayableDelayMs: 650 // Délai initial avant la première vérification de jouabilité
+    hover: { scale: 1.06, durationMs: 90, ease: 'Sine.easeOut' }, // Hover pulse
+    select: { scale: 1.12, durationMs: 110, ease: 'Back.easeOut' }, // Selection emphasis
+    deselect: { scale: 1, durationMs: 90, ease: 'Sine.easeOut' }, // Reset after deselect
+    bump: { scaleX: 1.08, scaleY: 0.94, durationMs: 80, ease: 'Back.easeInOut' }, // Invalid swap feedback
+    destroy: { durationMs: 220, scale: 1.35, angleJitter: 10, ease: 'Back.easeIn' }, // Tile destruction
+    upgrade: { scale: 1.15, durationMs: 140, ease: 'Back.easeOut' }, // Special promotion
+    hint: { idleDelayMs: 10000, pulseScale: 1.12, durationMs: 220, repeat: 5, ease: 'Sine.easeInOut', checkIntervalMs: 800 }, // Idle hint
+    cascadeDelayMs: 260, // Delay between cascade waves
+    matchWaveDelayMs: 18, // Base delay to stagger gravity
+    reshuffle: { wobbleAngle: 6, durationMs: 120, repeat: 1, ease: 'Sine.easeInOut', maxAttempts: 40 }, // Reshuffle wobble
+    hoverOutScale: 1, // Scale when leaving hover
+    timeUpZoom: { target: 1.02, durationMs: 200, ease: 'Sine.easeInOut' }, // Time-up camera pulse
+    startupEnsurePlayableDelayMs: 650 // Initial playable check delay
   },
   rules: {
-    minMatch: 3, // Longueur minimale d'un match
-    lineMatchLength: 4, // Longueur requise pour générer une tuile ligne
-    novaMatchLength: 5, // Longueur requise pour générer une tuile nova
-    supernovaNovaCount: 3, // Nombre de novas alignées pour déclencher une supernova
-    novaBlastRadius: 1, // Rayon (cases autour) d'effet d'une nova
-    pointsPerTile: 10, // Points par tuile détruite
-    bonusPerTileForLine: 4, // Bonus par tuile pour les matchs de 4+
-    cascadeBonusPerChain: 5, // Bonus par niveau de cascade
-    timerSeconds: 120, // Durée de la partie en secondes
-    timerTickMs: 1000 // Fréquence d'actualisation du timer
+    minMatch: 3, // Minimum contiguous tiles for a match
+    lineMatchLength: 4, // Length required for line specials
+    novaMatchLength: 5, // Length required for nova specials
+    supernovaNovaCount: 3, // Number of novas to trigger a supernova
+    novaBlastRadius: 1, // Blast radius (in tiles) for novas
+    pointsPerTile: 10, // Base points per destroyed tile
+    bonusPerTileForLine: 4, // Bonus per tile for line-length matches
+    cascadeBonusPerChain: 5, // Bonus per cascade depth
+    timerSeconds: 120, // Game duration in seconds
+    timerTickMs: 1000 // Timer tick frequency
   },
   effects: {
-    cameraShake: { durationMs: 70, intensity: 0.0025 }, // Secousse de caméra sur match
-    flash: { color: 0xffffff, alpha: 0.25, durationMs: 160, scale: 1.4, ease: 'Sine.easeOut' }, // Flash visuel lors d'une destruction
+    cameraShake: { durationMs: 70, intensity: 0.0025 }, // Camera shake on matches
+    flash: { color: 0xffffff, alpha: 0.25, durationMs: 160, scale: 1.4, ease: 'Sine.easeOut' }, // Destruction flash
     particles: {
-      speed: { min: 80, max: 140 }, // Vitesse des particules
-      lifespanMs: 320, // Durée de vie des particules
-      scale: { start: 0.8, end: 0 }, // Évolution de l'échelle des particules
-      quantity: 12, // Quantité de particules
-      angle: { min: 0, max: 360 }, // Angle de dispersion des particules
-      blendMode: 'ADD' // Mode de fusion pour les particules
+      speed: { min: 80, max: 140 }, // Particle speed range
+      lifespanMs: 320, // Particle lifetime
+      scale: { start: 0.8, end: 0 }, // Particle scale transition
+      quantity: 12, // Particle count
+      angle: { min: 0, max: 360 }, // Spread angle
+      blendMode: 'ADD' // Particle blend mode
     }
   },
   ui: {
-    bestScoreKey: 'runeshards-best' // Clé de stockage pour le meilleur score
+    bestScoreKey: `${ACTIVE_THEME.storagePrefix}-best-score` // Local storage key for best score (theme-driven)
   }
 };

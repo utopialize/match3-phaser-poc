@@ -72,6 +72,9 @@ export class GameScene extends Phaser.Scene {
     this.boardOffset.y =
       (this.scale.height - GAME_CONFIG.grid.rows * GAME_CONFIG.grid.tileSize) / 2 + GAME_CONFIG.grid.boardOffsetY;
     this.hud = new Hud(this);
+    this.hud.setGameTitle();
+    this.hud.initNewGameButton();
+    this.hud.initDevModeDropdown();
     this.tileRenderer = new TileRenderer(this, this.gemSpecs);
     this.initGrid();
     this.bindUI();

@@ -89,7 +89,7 @@ const drawGemRect = (gfx: Phaser.GameObjects.Graphics, primary: number, secondar
   gfx.fillRoundedRect(shape.inset, shape.inset, size - shape.inset * 2, size - shape.inset * 2, shape.border);
   gfx.fillStyle(primary, 1);
   gfx.fillRoundedRect(shape.innerInset, shape.innerInset, size - shape.innerInset * 2, size - shape.innerInset * 2, shape.innerBorder);
-  const strokeOffset = shape.innerInset + shape.stroke.width;
+  const strokeOffset = shape.innerInset;
   const strokeSize = size - strokeOffset * 2;
   gfx.lineStyle(shape.stroke.width, shape.stroke.color, shape.stroke.alpha);
   gfx.strokeRoundedRect(strokeOffset, strokeOffset, strokeSize, shape.innerBorder);
@@ -115,6 +115,8 @@ const drawRune = (gfx: Phaser.GameObjects.Graphics, index: number, size: number)
     if (shape.close) {
       gfx.closePath();
     }
+  } else if (shape.kind === 'circle') {
+    gfx.strokeCircle(center, center, shape.radius);
   } else {
     for (let i = 0; i < shape.spikes * 2; i += 1) {
       const radius = i % 2 === 0 ? shape.outerRadius : shape.innerRadius;

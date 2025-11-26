@@ -3,6 +3,8 @@
  * @module src/ui/Hud
  */
 import Phaser from 'phaser';
+import { GAME_CONFIG } from '../config/GameConfig';
+import { ACTIVE_THEME } from '../config/ThemeConfig';
 import { SpecialType } from '../types';
 
 type HudElements = {
@@ -120,8 +122,41 @@ export class Hud {
    * @param timer - Remaining time in seconds.
    */
   updateHud(score: number, best: number, timer: number): void {
-    if (this.elements.scoreEl) this.elements.scoreEl.textContent = `Flux: ${score}`;
-    if (this.elements.bestEl) this.elements.bestEl.textContent = `Record: ${best}`;
-    if (this.elements.timerEl) this.elements.timerEl.textContent = `Cycle: ${timer}s`;
+    if (this.elements.scoreEl) this.elements.scoreEl.textContent = `${ACTIVE_THEME.ui.scoreLabel}: ${score}`;
+    if (this.elements.bestEl) this.elements.bestEl.textContent = `${ACTIVE_THEME.ui.bestLabel}: ${best}`;
+    if (this.elements.timerEl) this.elements.timerEl.textContent = `${ACTIVE_THEME.ui.timeLabel}: ${timer}s`;
+  }
+
+  /**
+   * Initialize the game title element from the active theme.
+   */
+  setGameTitle(): void {
+    const titleEl = document.getElementById('game-title');
+    if (titleEl) {
+      titleEl.textContent = ACTIVE_THEME.gameTitle;
+    }
+  }
+
+  /**
+   * Initialize the new game button text from the active theme.
+   */
+  initNewGameButton(): void {
+    if (this.elements.newGameBtn) {
+      this.elements.newGameBtn.textContent = ACTIVE_THEME.ui.newGameButton;
+    }
+  }
+
+  /**
+   * Populate the dev dropdown with gem names from configuration.
+   */
+  initDevModeDropdown(): void {
+    if (!this.elements.devType) return;
+    this.elements.devType.innerHTML = '';
+    GAME_CONFIG.gems.specs.forEach((gem, index) => {
+      const option = document.createElement('option');
+      option.value = `${index}`;
+      option.textContent = gem.name.charAt(0).toUpperCase() + gem.name.slice(1);
+      this.elements.devType?.appendChild(option);
+    });
   }
 }
